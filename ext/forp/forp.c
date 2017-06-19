@@ -43,10 +43,6 @@ static inline double round(double val) {
 }
 #endif
 
-#if HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
-#endif
-
 
 /* {{{ forp_populate_function
  */
@@ -62,7 +58,7 @@ static void forp_populate_function(
     function->filename = NULL;
 
     // Retrieves class and function names
-    if (edata->func->common.function_name) {
+    if (edata->func && edata->func->common.function_name) {
         if (Z_OBJ(edata->This)) {
             if (edata->func->common.scope) {
                 function->class = strdup(ZSTR_VAL(edata->func->common.scope->name));

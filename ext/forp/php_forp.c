@@ -33,7 +33,9 @@
 #include "zend_exceptions.h"
 #include "Zend/zend_vm.h"
 
-static int le_forp;
+#if HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
 
 
 /* {{{ forp_execute
@@ -119,21 +121,6 @@ void forp_end(TSRMLS_D) {
             forp_close_node(FORP_G(current_node) TSRMLS_CC);
         }
 
-        // Restores Zend API methods
-#if PHP_VERSION_ID < 50500
-        if (old_execute) {
-            zend_execute = old_execute;
-            old_execute = 0;
-        }
-#else
-        if (ori_execute_ex) {
-            zend_execute_ex = ori_execute_ex;
-            ori_execute_ex = 0;
-        }
-#endif
-        if (!FORP_G(no_internals)) {
-            zend_execute_internal = ori_execute_internal;
-        }
         // Stop
         FORP_G(started) = 0;
     }
@@ -180,9 +167,6 @@ zend_module_entry forp_module_entry = {
 };
 
 #ifdef COMPILE_DL_FORP
-#ifdef ZTS
-ZEND_TSRMLS_CACHE_DEFINE()
-#endif
 ZEND_GET_MODULE(forp)
 #endif
 
@@ -219,6 +203,22 @@ static void php_forp_init_globals(zend_forp_globals *forp_globals)
 }
 
 PHP_MSHUTDOWN_FUNCTION(forp) {
+    // Restores Zend API methods
+#if PHP_VERSION_ID < 50500
+    if (old_execute) {
+        zend_execute = old_execute;
+        old_execute = 0;
+    }
+#else
+    if (ori_execute_ex) {
+        zend_execute_ex = ori_execute_ex;
+        ori_execute_ex = 0;
+    }
+#endif
+    if (!FORP_G(no_internals)) {
+        zend_execute_internal = ori_execute_internal;
+    }
+
     return SUCCESS;
 }
 
@@ -285,10 +285,6 @@ PHP_MINIT_FUNCTION(forp) {
 }
 
 PHP_RINIT_FUNCTION(forp) {
-#if defined(COMPILE_DL_FORP) && defined(ZTS)
-	ZEND_TSRMLS_CACHE_UPDATE();
-#endif
-
     zval tmp;
     ZVAL_NULL(&tmp);
 
